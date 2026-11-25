@@ -230,6 +230,7 @@ table.pp tr.avg td { border-top: 1px solid var(--line); font-weight: 700; color:
       </div>
       <div class="err" id="code-err" hidden></div>
       <button id="code-go" class="primary" type="button">Los geht’s</button>
+      <div class="foot" data-version></div>
     </section>
 
     <section id="view-rate" class="view" role="tabpanel" aria-labelledby="tab-rate">
@@ -292,6 +293,7 @@ const FIREBASE_CONFIG = {
   appId: "1:1033990092878:web:a279a92127f75321edab1f"
 };
 const FIREBASE_VERSION = "10.12.2";
+const APP_VERSION = 4;
 
 const PEOPLE = ["Fiete", "Jonathan", "Samson"];
 const CRIT = [
@@ -602,6 +604,7 @@ function renderList() {
   if (store.mode === "sync") foot.innerHTML = `<span>Gruppe: <b>${esc(store.code)}</b></span><button type="button" id="change-code">Gruppe wechseln</button>`;
   else if (store.mode === "local") foot.innerHTML = "<span>Gespeichert nur auf diesem Handy.</span>";
   else foot.innerHTML = "";
+  foot.insertAdjacentHTML("beforeend", `<span>Version ${APP_VERSION}</span>`);
 }
 
 function renderStatus() {
@@ -763,8 +766,17 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 document.addEventListener("click", requestWake, { once: true });
 
 if ("serviceWorker" in navigator && location.protocol === "https:") {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+  // Kommt eine neue Version an, einmal neu laden, damit sie sofort gilt.
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController || reloaded) return;
+    reloaded = true;
+    location.reload();
+  });
+  navigator.serviceWorker.register("sw.js").then((reg) => reg.update()).catch(() => {});
 }
+document.querySelectorAll("[data-version]").forEach((el) => { el.textContent = "Version " + APP_VERSION; });
 
 buildWho(); buildCrits(); renderAll();
 initStore();
