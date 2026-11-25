@@ -1,6 +1,6 @@
 // Offline-Fähigkeit: App-Hülle, Schriften und Firebase-SDK aus dem Cache.
 // Firestore-Datenverkehr (firestore.googleapis.com) wird nicht angefasst.
-const CACHE = "gw-tour-v2";
+const CACHE = "gw-tour-v3";
 const SHELL = [
   "./",
   "./index.html",
@@ -29,14 +29,15 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
 
   if (url.origin === self.location.origin) {
-    // Sofort aus dem Cache, im Hintergrund aktualisieren (neue Version beim nächsten Öffnen).
+    // Erst frisch aus dem Netz (Updates kommen sofort an); bei schlechtem Netz nach 3 s aus dem Cache.
     e.respondWith(
       caches.open(CACHE).then(async (cache) => {
         const cached = await cache.match(req, { ignoreSearch: true });
-        const network = fetch(req)
-          .then((res) => { if (res.ok) cache.put(req, res.clone()); return res; })
-          .catch(() => cached);
-        return cached || network;
+        const network = fetch(req, { cache: "no-store" })
+          .then((res) => { if (res.ok) cache.put(req, res.clone()); return res; });
+        if (!cached) return network;
+        const timeout = new Promise((resolve) => setTimeout(() => resolve(cached), 3000));
+        return Promise.race([network.catch(() => cached), timeout]);
       })
     );
     return;

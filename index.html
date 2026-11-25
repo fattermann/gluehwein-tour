@@ -324,6 +324,9 @@ function lsGet(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.
 function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 function lsDel(k) { try { localStorage.removeItem(k); } catch {} }
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+// Handy-Tastaturen machen aus "1x1" gern "1×1" – Mal-Zeichen & Co. zurück in ein x verwandeln.
+const normCode = (s) => String(s || "").normalize("NFKC").toLowerCase()
+  .replace(/[×✕✖✗✘хⅹ⨯]/g, "x").replace(/[^a-z0-9-]/g, "");
 
 let toastTimer = null;
 function toast(msg) {
@@ -352,9 +355,9 @@ function useLocal() {
 
 async function initStore() {
   if (!FIREBASE_CONFIG) { useLocal(); return; }
-  const hashCode = (location.hash.match(/code=([a-z0-9-]+)/i) || [])[1];
-  if (hashCode) { lsSet(CODE_KEY, hashCode.toLowerCase()); history.replaceState(null, "", location.pathname); }
-  store.code = lsGet(CODE_KEY, null);
+  const hashCode = (decodeURIComponent(location.hash).match(/code=([^&]+)/i) || [])[1];
+  if (hashCode) { lsSet(CODE_KEY, normCode(hashCode)); history.replaceState(null, "", location.pathname); }
+  store.code = normCode(lsGet(CODE_KEY, null)) || null;
   if (!store.code) { showSetup(); return; }
   try {
     const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-app.js`);
@@ -375,8 +378,9 @@ async function initStore() {
       renderAll();
     }, (err) => {
       if (err && err.code === "permission-denied") {
+        const tried = store.code;
         lsDel(CODE_KEY);
-        showSetup("Der Gruppen-Code stimmt nicht. Bitte nochmal eingeben.");
+        showSetup(`Der Code „${tried}“ stimmt nicht. Bitte Buchstabe für Buchstabe prüfen und nochmal versuchen.`, tried);
         return;
       }
       store.error = "Verbindung zur gemeinsamen Liste verloren. App neu öffnen.";
@@ -634,17 +638,17 @@ function showTab(name) {
   $("savebar").hidden = !rate;
   window.scrollTo(0, 0);
 }
-function showSetup(err) {
+function showSetup(err, prefill) {
   if (store.unsub) { store.unsub(); store.unsub = null; }
   store.mode = "loading";
   $("view-setup").hidden = false;
   $("view-rate").hidden = true; $("view-list").hidden = true; $("savebar").hidden = true; $("tabs").hidden = true;
   $("status").innerHTML = "";
   $("code-err").hidden = !err; $("code-err").textContent = err || "";
-  $("code").value = "";
+  $("code").value = prefill || "";
 }
 function submitCode() {
-  const c = $("code").value.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
+  const c = normCode($("code").value);
   if (c.length < 4) { $("code-err").hidden = false; $("code-err").textContent = "Bitte den Code eingeben, den ihr in der Gruppe ausgemacht habt."; return; }
   lsSet(CODE_KEY, c);
   // Neu starten, damit Firestore sauber mit dem neuen Code verbindet.
@@ -660,6 +664,10 @@ $("tab-rate").addEventListener("click", () => showTab("rate"));
 $("tab-list").addEventListener("click", () => showTab("list"));
 $("code-go").addEventListener("click", submitCode);
 $("code").addEventListener("keydown", (e) => { if (e.key === "Enter") submitCode(); });
+$("code").addEventListener("input", (e) => {
+  const el = e.target, fixed = normCode(el.value);
+  if (el.value !== fixed) el.value = fixed;
+});
 
 $("bude").addEventListener("input", (e) => { form.bude = e.target.value; saveDraft(); renderForm(); });
 $("bude").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
