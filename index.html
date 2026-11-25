@@ -282,8 +282,15 @@ table.pp tr.avg td { border-top: 1px solid var(--line); font-weight: 700; color:
 
 <script type="module">
 /* ---------- Konfiguration ---------- */
-// Firebase-Web-Config aus der Firebase-Konsole. Solange null: Speichern nur auf diesem Handy.
-const FIREBASE_CONFIG = null;
+// Firebase-Web-Config aus der Firebase-Konsole (öffentlich; Schutz über die Firestore-Regeln + Gruppen-Code).
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBBCDmny8sbs-aF5Fbuy3C03IV_k4E8UMA",
+  authDomain: "gluehwein-tour.firebaseapp.com",
+  projectId: "gluehwein-tour",
+  storageBucket: "gluehwein-tour.firebasestorage.app",
+  messagingSenderId: "1033990092878",
+  appId: "1:1033990092878:web:a279a92127f75321edab1f"
+};
 const FIREBASE_VERSION = "10.12.2";
 
 const PEOPLE = ["Fiete", "Jonathan", "Samson"];

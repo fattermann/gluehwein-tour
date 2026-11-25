@@ -1,6 +1,6 @@
 // Offline-Fähigkeit: App-Hülle, Schriften und Firebase-SDK aus dem Cache.
 // Firestore-Datenverkehr (firestore.googleapis.com) wird nicht angefasst.
-const CACHE = "gw-tour-v1";
+const CACHE = "gw-tour-v2";
 const SHELL = [
   "./",
   "./index.html",
